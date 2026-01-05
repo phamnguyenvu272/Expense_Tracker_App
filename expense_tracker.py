@@ -69,48 +69,78 @@ def get_user_expense():
 
 def save_expense_to_file(expense: Expense, expense_file_path):
     print(f"🎯 Saving User Expense: {expense} to {expense_file_path}")
-    with open(expense_file_path, "a") as file: # a for append mode
+    # YL added , encoding="utf-8": specify UTF‑8 encoding so emojis do not crash on Windows
+    with open(expense_file_path, "a", encoding="utf-8") as file: # a for append mode
         file.write(f"{expense.name},{expense.amount},{expense.category}\n") #\n for new line
 
+        
+# ---------------------------------------------------------
+#  YL added— FEATURE 1: Group Expenses by Category
+# ---------------------------------------------------------
+def group_expenses_by_category(expenses: list[Expense]) -> dict:
+    """
+    Group expenses by category and return:
+    {category: total_amount}
+    """
+    amount_by_category = {}
+
+    for expense in expenses:
+        if expense.category in amount_by_category:
+            amount_by_category[expense.category] += expense.amount
+        else:
+            amount_by_category[expense.category] = expense.amount
+
+    return amount_by_category
+
+
+# ---------------------------------------------------------
+# YL added— FEATURE 2: Track Remaining Budget
+# ---------------------------------------------------------
+def calculate_remaining_budget(expenses: list[Expense], monthly_budget: float) -> float:
+    """
+    Calculate remaining budget after subtracting total expenses.
+    Returns a float (can be negative if overspent).
+    """
+    total_spent = sum(e.amount for e in expenses)
+    return monthly_budget - total_spent
+
+
+# ---------------------------------------------------------
+# YL Updated summarize_expenses() using above 2 feature functions
+# ---------------------------------------------------------
 def summarize_expenses(expense_file_path, budget):
     print(f"🎯 Summarizing User Expense")
     expenses: list[Expense] = [] # this variable is a list of Expenses
-    with open(expense_file_path, "r") as f: # r for read mode
-        lines = f.readlines()
-        for line in lines:
-            expense_name, expense_amount, expense_category = line.strip().split(",")
-            line_expense = Expense(
-                name=expense_name,
-                amount=float(expense_amount),
-                category=expense_category,
-            )
-            expenses.append(line_expense)
+    # YL added , encoding="utf-8":
+    with open(expense_file_path, "r", encoding="utf-8") as f:
+        for line in f.readlines():
+            name, amount, category = line.strip().split(",")
+            expenses.append(Expense(name=name, amount=float(amount), category=category))
 
-    amount_by_category = {} # {} for dictionary: to hold total amount by category
-    for expense in expenses:
-        key = expense.category # key for the dictionary
-        if key in amount_by_category: # if the category already exists in the dictionary
-            amount_by_category[key] += expense.amount # add the amount to the existing amount
-        else:
-            amount_by_category[key] = expense.amount # else create a new key with the amount
+    # --- YL edit ---
+    amount_by_category = group_expenses_by_category(expenses)
 
-    print("Expenses By Category 📈:")
-    for key, amount in amount_by_category.items():
-        print(f"  {key}: ${amount:.2f}")
+    print("Expenses By Category:")
+    for category, amount in amount_by_category.items():
+        print(f"  {category}: ${amount:.2f}")
 
-    total_spent = sum([x.amount for x in expenses]) # sum all the amounts in the expenses list
+    # --- YL edit: Remaining Budget ---
+    remaining_budget = calculate_remaining_budget(expenses, budget)
+    total_spent = budget - remaining_budget
+
     print(f"💵 Total Spent: ${total_spent:.2f}")
-
-    # TODO: take care of scenario where total_spent > budget, show 0 or negative
-    remaining_budget = budget - total_spent # 
     print(f"✅ Budget Remaining: ${remaining_budget:.2f}")
 
-    now = datetime.datetime.now() # get current date
-    days_in_month = calendar.monthrange(now.year, now.month)[1] # get number of days in the current month
-    remaining_days = days_in_month - now.day # calculate remaining days in the month
+    # Daily budget calculation
+    now = datetime.datetime.now()
+    days_in_month = calendar.monthrange(now.year, now.month)[1]
+    remaining_days = days_in_month - now.day
 
-    daily_budget = remaining_budget / remaining_days
-    print(green(f"👉 Budget Per Day: ${daily_budget:.2f}"))
+    if remaining_days > 0:
+        daily_budget = remaining_budget / remaining_days
+        print(green(f"👉 Budget Per Day: ${daily_budget:.2f}"))
+    else:
+        print("End of month — no daily budget calculation.")
 
  
 def green(text):
@@ -118,5 +148,3 @@ def green(text):
 
 if __name__ == "__main__":
     main()
-
-#YL test
