@@ -3,13 +3,13 @@ import datetime
 from expense import Expense
 
 
-def main():
+def main(input_func=input):
     print(f"🎯 Running Expense Tracker!")
     expense_file_path = "expenses.csv"
     budget = 2000
 
     while True:
-        choice = input(f"""Menu:
+        choice = input_func(f"""Menu:
             1. Add Expense      
             2. View Summary
             
@@ -17,7 +17,7 @@ def main():
         
         if choice == "1":
             # Get user input for expense.
-            expense = get_user_expense()
+            expense = get_user_expense(input_func=input_func)
 
             # Write their expense to a file.
             save_expense_to_file(expense, expense_file_path)
@@ -32,11 +32,23 @@ def main():
         else:
             print("Invalid category. Please try again!")
 
-
-def get_user_expense():
+# use input_func parameter to allow injection of custom input function for testing
+def get_user_expense(input_func=input):
     print(f"🎯 Getting User Expense")
-    expense_name = input("Enter expense name: ")
-    expense_amount = float(input("Enter expense amount: "))
+    expense_name = input_func("Enter expense name: ")
+
+    # Validate expense amount input: keep prompting until a valid non-negative number is entered
+    while True:
+        amount_input = input_func("Enter expense amount: ")
+        try:
+            expense_amount = float(amount_input)
+            if expense_amount < 0:
+                print("Amount cannot be negative. Please enter a positive number.")
+                continue
+            break
+        except ValueError:
+            print("Invalid amount. Please enter a numeric value (e.g., 12.50).")
+
     print(f"You've entered: {expense_name}, Amount: {expense_amount}")
 
     expense_categories = [
@@ -53,12 +65,14 @@ def get_user_expense():
             print(f"  {i + 1}. {category_name}")  
 
         value_range = f"[1 - {len(expense_categories)}]"
-        # TODO: need to validate this input
-        # TODO: try catch block
-        selected_index = int(input(f"Enter a category number {value_range}: ")) - 1 
-        # TODO: except exception handling can be added here
+        # validating the user input
+        try:
+            selected_index = int(input_func(f"Enter a category number {value_range}: ")) - 1
+        except ValueError:
+            print(f"Invalid input. Please enter a number from {value_range}.")
+            continue
 
-        if selected_index in range(len(expense_categories)):
+        if 0 <= selected_index < len(expense_categories):
             selected_category = expense_categories[selected_index]
             new_expense = Expense(
                 name=expense_name, category=selected_category, amount=expense_amount
