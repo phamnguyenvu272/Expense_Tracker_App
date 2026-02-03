@@ -32,4 +32,4 @@ open htmlcov/index.html
 ```
 
 Notes:
-- A `.coveragerc` file is included to skip tests and other patterns from the report.
+- A `.coveragerc` file can be included to skip tests and other patterns from the report. Did not commit this file to Git.
